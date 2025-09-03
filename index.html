@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Beslenme ve Spor Günlüğü</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0b0f14; --panel:#121821; --muted:#94a3b8; --text:#e6edf3; --accent:#22c55e; --accent-2:#06b6d4; --danger:#ef4444; }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{ margin:0; font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--text); background:linear-gradient(180deg,#06090f, #0b1220); }
+    .container{ max-width:980px; margin:0 auto; padding:24px; }
+    .header{ display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px; }
+    .title{ font-weight:700; letter-spacing:.2px; font-size:22px; }
+    .sub{ color:var(--muted); font-size:12px }
+    .row{ display:flex; flex-wrap:wrap; gap:16px; }
+    .card{ flex:1 1 320px; background:rgba(16,22,31,.75); border:1px solid rgba(148,163,184,.15); border-radius:14px; padding:16px; backdrop-filter: blur(8px); }
+    .card h3{ margin:0 0 12px; font-size:16px }
+    label{ display:block; font-size:12px; color:var(--muted); margin:10px 0 6px }
+    input, select, textarea{ width:100%; background:#0c121a; color:var(--text); border:1px solid rgba(148,163,184,.2); border-radius:10px; padding:10px 12px; outline:none; font:inherit }
+    textarea{ min-height:84px; resize:vertical }
+    .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+    .actions{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap }
+    button{ background:linear-gradient(180deg,#1e293b,#111827); color:var(--text); border:1px solid rgba(148,163,184,.25); border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:600 }
+    button.primary{ background:linear-gradient(180deg,#22c55e,#16a34a); border-color:#16a34a; color:#04120a }
+    button.alt{ background:linear-gradient(180deg,#06b6d4,#0891b2); border-color:#0891b2; color:#021015 }
+    button.danger{ background:linear-gradient(180deg,#ef4444,#b91c1c); border-color:#b91c1c; color:#220404 }
+    .list{ margin-top:8px; display:flex; flex-direction:column; gap:8px; max-height:260px; overflow:auto }
+    .item{ border:1px solid rgba(148,163,184,.18); background:rgba(11,17,24,.65); border-radius:12px; padding:10px 12px; display:flex; justify-content:space-between; gap:12px }
+    .item small{ color:var(--muted) }
+    .pill{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.2px }
+    .pill.sabah{ background:#0b3b1d; color:#86efac; border:1px solid #14532d }
+    .pill.oglen{ background:#083344; color:#67e8f9; border:1px solid #164e63 }
+    .pill.aksam{ background:#3b0764; color:#d8b4fe; border:1px solid #581c87 }
+    .pill.ekstra{ background:#1e293b; color:#cbd5e1; border:1px solid #334155 }
+    .footer{ display:flex; justify-content:space-between; gap:10px; margin-top:16px; align-items:center }
+    .muted{ color:var(--muted); font-size:12px }
+    .section-title{ display:flex; align-items:center; justify-content:space-between; gap:8px }
+    .empty{ color:var(--muted); font-size:13px; padding:8px 0 }
+  </style>
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+  <!-- jsPDF & autotable for export -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.3/dist/jspdf.plugin.autotable.min.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="title">Beslenme ve Spor Günlüğü</div>
+        <div class="sub">Günlük öğünler, ekstra tüketimler, spor hareketleri ve PDF çıktı</div>
+      </div>
+      <div class="grid-2" style="min-width:260px; max-width:360px; align-items:center">
+        <div>
+          <label for="date">Tarih</label>
+          <input id="date" type="date" />
+        </div>
+        <div>
+          <label for="time">Saat</label>
+          <input id="time" type="time" />
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="card" id="meal-card">
+        <div class="section-title">
+          <h3>Öğün Ekle (Otomatik: Sabah / Öğle / Akşam)</h3>
+          <span id="autoMealType" class="pill">-</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="meal-name">Yemek İsmi</label>
+            <input id="meal-name" placeholder="Ör. Yulaf, Omlet" />
+          </div>
+          <div>
+            <label for="meal-amount">Miktar</label>
+            <input id="meal-amount" placeholder="Ör. 2 dilim, 200 g, 1 kase" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="add-meal">Öğün Kaydet</button>
+        </div>
+        <div class="list" id="meals-list"></div>
+      </div>
+
+      <div class="card" id="extra-card">
+        <div class="section-title">
+          <h3>Ekstra (Su ve Diğer Tüketimler)</h3>
+          <span class="pill ekstra">EKSTRA</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="extra-name">Ürün / İçecek</label>
+            <input id="extra-name" placeholder="Ör. Su, Kahve, Atıştırmalık" />
+          </div>
+          <div>
+            <label for="extra-amount">Miktar</label>
+            <input id="extra-amount" placeholder="Ör. 500 ml, 1 fincan" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="add-extra">Ekstra Kaydet</button>
+        </div>
+        <div class="list" id="extras-list"></div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:16px">
+      <div class="card" id="workout-card">
+        <div class="section-title">
+          <h3>Spor Hareketleri</h3>
+          <span class="pill" style="background:#2e1065; color:#c4b5fd; border:1px solid #4c1d95">SPOR</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="workout-name">Hareket</label>
+            <input id="workout-name" placeholder="Ör. Şınav, Squat, Koşu" />
+          </div>
+          <div>
+            <label for="workout-reps">Süre / Tekrar</label>
+            <input id="workout-reps" placeholder="Ör. 3x12, 30 dk" />
+          </div>
+        </div>
+        <label for="workout-notes">Not</label>
+        <textarea id="workout-notes" placeholder="Ör. Sağ dizde hafif ağrı"></textarea>
+        <div class="actions">
+          <button class="primary" id="add-workout">Sporu Kaydet</button>
+        </div>
+        <div class="list" id="workouts-list"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="muted">Veriler cihazında ve Supabase üzerinde gün bazlı tutulur.</div>
+      <div class="actions">
+        <button class="alt" id="export-pdf">Bugünü PDF Kaydet</button>
+        <button class="danger" id="clear-day">Bugünü Temizle</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ------------------------
+    // Yardımcılar
+    // ------------------------
+    const supabaseUrl = 'https://ccoxnqygctjmmfvsriwr.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjb3hucXlnY3RqbW1mdnNyaXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4OTIxOTcsImV4cCI6MjA3MjQ2ODE5N30.CYjxTluCpRnQZxkupPFyJUB_smC6-KiDxNZwr6efOBU';
+    let supabaseClient;
+    function initSupabaseClient(){
+      if (supabaseClient) return supabaseClient;
+      if (window.supabase) {
+        const cid = getClientId();
+        supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { 'x-client-id': cid } }
+        });
+      }
+      return supabaseClient;
+    }
+
+    const $ = (sel) => document.querySelector(sel);
+    const todayISO = () => new Date().toISOString().slice(0,10);
+    const pad = (n) => String(n).padStart(2,'0');
+    const nowTime = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}` };
+    const getClientId = () => {
+      const key = 'client_id';
+      let cid = localStorage.getItem(key);
+      if (!cid) { cid = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).slice(2)+Date.now()); localStorage.setItem(key, cid); }
+      return cid;
+    };
+
+    function detectMealType(hhmm){
+      // hhmm -> 'HH:MM'
+      const [h,m] = hhmm.split(':').map(Number);
+      const minutes = h*60 + m;
+      const inRange = (a,b) => minutes >= a && minutes < b;
+      // 09:00-12:00 => sabah
+      if (inRange(9*60, 12*60)) return { key:'sabah', label:'SABAH', cls:'sabah' };
+      // 12:00-18:30 => oglen
+      if (inRange(12*60, 18*60 + 30)) return { key:'oglen', label:'ÖĞLE', cls:'oglen' };
+      // 18:30-20:30 => aksam
+      if (inRange(18*60 + 30, 20*60 + 30)) return { key:'aksam', label:'AKŞAM', cls:'aksam' };
+      return { key:'diger', label:'DİĞER', cls:'ekstra' };
+    }
+
+    function setAutoTypePill(){
+      const t = $('#time').value || nowTime();
+      const mt = detectMealType(t);
+      const pill = $('#autoMealType');
+      pill.className = `pill ${mt.cls}`;
+      pill.textContent = mt.label;
+    }
+
+    // ------------------------
+    // UI Defaults
+    // ------------------------
+    (function initDefaults(){
+      const d = $('#date');
+      const t = $('#time');
+      d.value = todayISO();
+      t.value = nowTime();
+      setAutoTypePill();
+    })();
+
+    // Supabase kütüphanesi yüklenince client'i oluştur ve günü yükle
+    document.addEventListener('DOMContentLoaded', () => {
+      initSupabaseClient();
+      setTimeout(loadDay, 150);
+    });
+
+    $('#time').addEventListener('change', setAutoTypePill);
+
+    // ------------------------
+    // SUPABASE Ops (tables must exist)
+    // Tables: meal_entries(id, client_id, date, time, name, amount, meal_type)
+    //         extra_entries(id, client_id, date, time, name, amount)
+    //         workouts(id, client_id, date, time, name, reps, notes)
+    // ------------------------
+    async function supaInsert(table, row){
+      if (!supabaseClient) initSupabaseClient();
+      if (!supabaseClient) return { data:null, error: new Error('Supabase yok') };
+      return await supabaseClient.from(table).insert(row).select();
+    }
+
+    async function supaSelect(table, filters){
+      if (!supabaseClient) initSupabaseClient();
+      if (!supabaseClient) return { data:[], error: new Error('Supabase yok') };
+      let q = supabaseClient.from(table).select('*');
+      Object.entries(filters).forEach(([k,v]) => { q = q.eq(k,v); });
+      q = q.order('time', { ascending:true });
+      return await q;
+    }
+
+    async function supaDeleteDay(date){
+      if (!supabaseClient) initSupabaseClient();
+      if (!supabaseClient) return;
+      const cid = getClientId();
+      await supabaseClient.from('meal_entries').delete().eq('client_id', cid).eq('date', date);
+      await supabaseClient.from('extra_entries').delete().eq('client_id', cid).eq('date', date);
+      await supabaseClient.from('workouts').delete().eq('client_id', cid).eq('date', date);
+    }
+
+    // ------------------------
+    // Render Helpers
+    // ------------------------
+    function renderMeals(meals){
+      const wrap = $('#meals-list');
+      wrap.innerHTML = '';
+      if (!meals || meals.length === 0){ wrap.innerHTML = `<div class="empty">Kayıt yok</div>`; return; }
+      meals.forEach(m => {
+        const badge = { sabah:'sabah', oglen:'oglen', aksam:'aksam', diger:'ekstra' }[m.meal_type] || 'ekstra';
+        const label = { sabah:'SABAH', oglen:'ÖĞLE', aksam:'AKŞAM', diger:'DİĞER' }[m.meal_type] || 'DİĞER';
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `<div><div style="font-weight:600">${m.name} <small>(${m.amount})</small></div>
+                         <small>${m.time}</small></div>
+                         <div><span class="pill ${badge}">${label}</span></div>`;
+        wrap.appendChild(el);
+      });
+    }
+
+    function renderExtras(extras){
+      const wrap = $('#extras-list');
+      wrap.innerHTML = '';
+      if (!extras || extras.length === 0){ wrap.innerHTML = `<div class="empty">Kayıt yok</div>`; return; }
+      extras.forEach(x => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `<div><div style="font-weight:600">${x.name} <small>(${x.amount})</small></div>
+                         <small>${x.time}</small></div>
+                         <div><span class="pill ekstra">EKSTRA</span></div>`;
+        wrap.appendChild(el);
+      });
+    }
+
+    function renderWorkouts(workouts){
+      const wrap = $('#workouts-list');
+      wrap.innerHTML = '';
+      if (!workouts || workouts.length === 0){ wrap.innerHTML = `<div class="empty">Kayıt yok</div>`; return; }
+      workouts.forEach(w => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `<div><div style="font-weight:600">${w.name} <small>(${w.reps})</small></div>
+                         <small>${w.time}</small><div class="muted">${w.notes || ''}</div></div>`;
+        wrap.appendChild(el);
+      });
+    }
+
+    // ------------------------
+    // Load Day
+    // ------------------------
+    async function loadDay(){
+      const date = $('#date').value || todayISO();
+      const cid = getClientId();
+      const [mealsRes, extrasRes, workoutsRes] = await Promise.all([
+        supaSelect('meal_entries', { client_id: cid, date }),
+        supaSelect('extra_entries', { client_id: cid, date }),
+        supaSelect('workouts', { client_id: cid, date }),
+      ]);
+      renderMeals(mealsRes.data || []);
+      renderExtras(extrasRes.data || []);
+      renderWorkouts(workoutsRes.data || []);
+    }
+
+    // Yedek: window load'ta da dene
+    window.addEventListener('load', () => { initSupabaseClient(); setTimeout(loadDay, 150); });
+    $('#date').addEventListener('change', () => { loadDay(); });
+
+    // ------------------------
+    // Add Handlers
+    // ------------------------
+    $('#add-meal').addEventListener('click', async () => {
+      const name = $('#meal-name').value.trim();
+      const amount = $('#meal-amount').value.trim();
+      const date = $('#date').value || todayISO();
+      const time = $('#time').value || nowTime();
+      if (!name || !amount) return alert('Lütfen yemek ismi ve miktar giriniz.');
+      const mt = detectMealType(time);
+      const row = { client_id:getClientId(), date, time, name, amount, meal_type: mt.key };
+      const { error } = await supaInsert('meal_entries', row);
+      if (error) { console.error(error); alert('Kaydetme hatası: ' + error.message); return; }
+      $('#meal-name').value = '';
+      $('#meal-amount').value = '';
+      await loadDay();
+    });
+
+    $('#add-extra').addEventListener('click', async () => {
+      const name = $('#extra-name').value.trim();
+      const amount = $('#extra-amount').value.trim();
+      const date = $('#date').value || todayISO();
+      const time = $('#time').value || nowTime();
+      if (!name || !amount) return alert('Lütfen ürün ve miktar giriniz.');
+      const row = { client_id:getClientId(), date, time, name, amount };
+      const { error } = await supaInsert('extra_entries', row);
+      if (error) { console.error(error); alert('Kaydetme hatası: ' + error.message); return; }
+      $('#extra-name').value = '';
+      $('#extra-amount').value = '';
+      await loadDay();
+    });
+
+    $('#add-workout').addEventListener('click', async () => {
+      const name = $('#workout-name').value.trim();
+      const reps = $('#workout-reps').value.trim();
+      const notes = $('#workout-notes').value.trim();
+      const date = $('#date').value || todayISO();
+      const time = $('#time').value || nowTime();
+      if (!name || !reps) return alert('Lütfen hareket ve tekrar/süre giriniz.');
+      const row = { client_id:getClientId(), date, time, name, reps, notes };
+      const { error } = await supaInsert('workouts', row);
+      if (error) { console.error(error); alert('Kaydetme hatası: ' + error.message); return; }
+      $('#workout-name').value = '';
+      $('#workout-reps').value = '';
+      $('#workout-notes').value = '';
+      await loadDay();
+    });
+
+    // ------------------------
+    // Clear Day
+    // ------------------------
+    $('#clear-day').addEventListener('click', async () => {
+      const date = $('#date').value || todayISO();
+      if (!confirm(`${date} tarihli tüm kayıtlar silinsin mi?`)) return;
+      await supaDeleteDay(date);
+      await loadDay();
+    });
+
+    // ------------------------
+    // PDF Export (jsPDF + autoTable)
+    // ------------------------
+    $('#export-pdf').addEventListener('click', async () => {
+      const date = $('#date').value || todayISO();
+      const cid = getClientId();
+      const [mealsRes, extrasRes, workoutsRes] = await Promise.all([
+        supaSelect('meal_entries', { client_id: cid, date }),
+        supaSelect('extra_entries', { client_id: cid, date }),
+        supaSelect('workouts', { client_id: cid, date }),
+      ]);
+      const meals = mealsRes.data || [];
+      const extras = extrasRes.data || [];
+      const workouts = workoutsRes.data || [];
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit:'pt', format:'a4' });
+      const trToAscii = (s) => (s||'')
+        .replace(/ç/g,'c').replace(/ğ/g,'g').replace(/ı/g,'i').replace(/i̇/g,'i')
+        .replace(/ö/g,'o').replace(/ş/g,'s').replace(/ü/g,'u')
+        .replace(/Ç/g,'C').replace(/Ğ/g,'G').replace(/İ/g,'I').replace(/İ/g,'I')
+        .replace(/Ö/g,'O').replace(/Ş/g,'S').replace(/Ü/g,'U');
+      const left = 40;
+      let y = 40;
+      doc.setFont('helvetica','bold'); doc.setFontSize(16);
+      if (doc.setCharSpace) try { doc.setCharSpace(0); } catch(_){}
+      doc.text(trToAscii(`Günlük Rapor - ${date}`), left, y);
+      y += 20;
+      doc.setFont('helvetica','normal'); doc.setTextColor(120);
+      doc.text(trToAscii('Beslenme ve Spor Günlüğü'), left, y);
+      doc.setTextColor(0);
+      y += 24;
+
+      // Meals grouped
+      const mealMap = { sabah:[], oglen:[], aksam:[], diger:[] };
+      meals.forEach(m => mealMap[m.meal_type || 'diger'].push(m));
+      const sections = [
+        ['SABAH (09:00-12:00)', mealMap.sabah],
+        ['OGLE (12:00-18:30)', mealMap.oglen],
+        ['AKSAM (18:30-20:30)', mealMap.aksam],
+        ['DIGER', mealMap.diger],
+      ];
+
+      sections.forEach(([title, arr]) => {
+        if (!arr || arr.length === 0) return;
+        doc.setFont('helvetica','bold'); doc.setFontSize(12);
+        doc.text(trToAscii(title), left, y);
+        y += 8;
+        doc.autoTable({
+          startY: y,
+          head:[[trToAscii('Saat'), trToAscii('Yemek'), trToAscii('Miktar')]],
+          body: arr.map(m => [m.time, trToAscii(m.name), trToAscii(m.amount)]),
+          theme:'grid', styles:{ fontSize:10 }, margin:{ left }, headStyles:{ fillColor:[34,197,94] }
+        });
+        y = doc.lastAutoTable.finalY + 14;
+      });
+
+      if (extras.length){
+        doc.setFont('helvetica','bold'); doc.setFontSize(12);
+        doc.text('EKSTRA', left, y);
+        y += 8;
+        doc.autoTable({ startY:y, head:[[trToAscii('Saat'), trToAscii('Urun'), trToAscii('Miktar')]], body: extras.map(x=>[x.time,trToAscii(x.name),trToAscii(x.amount)]), theme:'grid', styles:{ fontSize:10 }, margin:{ left }, headStyles:{ fillColor:[6,182,212] } });
+        y = doc.lastAutoTable.finalY + 14;
+      }
+
+      if (workouts.length){
+        doc.setFont('helvetica','bold'); doc.setFontSize(12);
+        doc.text('SPOR', left, y);
+        y += 8;
+        doc.autoTable({ startY:y, head:[[trToAscii('Saat'), trToAscii('Hareket'), trToAscii('Tekrar/Sure'), trToAscii('Not')]], body: workouts.map(w=>[w.time,trToAscii(w.name),trToAscii(w.reps),trToAscii(w.notes||'')]), theme:'grid', styles:{ fontSize:10 }, margin:{ left }, headStyles:{ fillColor:[168,85,247] } });
+      }
+
+      doc.save(`gunluk-rapor-${date}.pdf`);
+    });
+  </script>
+</body>
+</html>
+
+
