@@ -40,6 +40,11 @@
     .muted{ color:var(--muted); font-size:12px }
     .section-title{ display:flex; align-items:center; justify-content:space-between; gap:8px }
     .empty{ color:var(--muted); font-size:13px; padding:8px 0 }
+    .item-actions{ display:flex; gap:8px; align-items:center }
+    .btn-sm{ padding:6px 8px; font-size:12px; border-radius:8px }
+    .btn-ghost{ background:transparent; border:1px solid rgba(148,163,184,.25) }
+    .btn-edit{ border-color:#0891b2; color:#67e8f9 }
+    .btn-del{ border-color:#b91c1c; color:#fecaca }
   </style>
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
@@ -142,6 +147,110 @@
         <button class="danger" id="clear-day">Bugünü Temizle</button>
       </div>
     </div>
+    <div class="row" style="margin-top:16px">
+      <div class="card" id="fixed-meal-plan">
+        <div class="section-title">
+          <h3>Beslenme Programım (Sabit)</h3>
+          <span class="pill" style="background:#0b3b1d; color:#86efac; border:1px solid #14532d">PLAN</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="plan-meal-name">Yemek/Öğe</label>
+            <input id="plan-meal-name" placeholder="Ör. Yulaf lapası" />
+          </div>
+          <div>
+            <label for="plan-meal-amount">Miktar/Detay</label>
+            <input id="plan-meal-amount" placeholder="Ör. 60 g yulaf + 200 ml süt" />
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="plan-meal-type">Öğün</label>
+            <select id="plan-meal-type">
+              <option value="sabah">Sabah</option>
+              <option value="oglen">Öğle</option>
+              <option value="aksam">Akşam</option>
+            </select>
+          </div>
+          <div>
+            <label for="plan-meal-order">Sıra (opsiyonel)</label>
+            <input id="plan-meal-order" type="number" min="1" placeholder="Ör. 1" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="add-plan-meal">Satır Ekle</button>
+        </div>
+        <div class="list" id="plan-meals-sabah-wrap">
+          <div class="muted" style="margin-bottom:6px">Sabah</div>
+          <div id="plan-meals-sabah"></div>
+        </div>
+        <div class="list" id="plan-meals-oglen-wrap" style="margin-top:10px">
+          <div class="muted" style="margin-bottom:6px">Öğle</div>
+          <div id="plan-meals-oglen"></div>
+        </div>
+        <div class="list" id="plan-meals-aksam-wrap" style="margin-top:10px">
+          <div class="muted" style="margin-bottom:6px">Akşam</div>
+          <div id="plan-meals-aksam"></div>
+        </div>
+      </div>
+
+      <div class="card" id="fixed-workout-plan">
+        <div class="section-title">
+          <h3>Spor Programım (Sabit)</h3>
+          <span class="pill" style="background:#2e1065; color:#c4b5fd; border:1px solid #4c1d95">PLAN</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="plan-order">Sıra No</label>
+            <input id="plan-order" type="number" min="1" placeholder="Ör. 1" />
+          </div>
+          <div>
+            <label for="plan-ex-name">Egzersiz İsmi</label>
+            <input id="plan-ex-name" placeholder="Ör. Bench Press" />
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="plan-sets">Set</label>
+            <input id="plan-sets" placeholder="Ör. 4" />
+          </div>
+          <div>
+            <label for="plan-reps">Tekrar</label>
+            <input id="plan-reps" placeholder="Ör. 8-10" />
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="plan-tempo">Tempo Süresi</label>
+            <input id="plan-tempo" placeholder="Ör. 3-1-1" />
+          </div>
+          <div>
+            <label for="plan-reverse">Reps in Reverse</label>
+            <input id="plan-reverse" placeholder="Ör. 10-8-6" />
+          </div>
+        </div>
+        <label for="plan-note">Not</label>
+        <input id="plan-note" placeholder="Ör. Omuz koru, son sette drop-set" />
+        <div class="actions">
+          <button class="primary" id="add-plan-ex">Egzersiz Ekle</button>
+        </div>
+        <div class="list" id="plan-workouts-list"></div>
+      </div>
+    </div>
+
+    <div class="card" id="notes-card" style="margin-top:16px">
+      <div class="section-title">
+        <h3>Dikkat Edilecekler (Sabit Notlar)</h3>
+        <span class="pill" style="background:#1e293b; color:#cbd5e1; border:1px solid #334155">SABİT</span>
+      </div>
+      <label for="pin-notes">Notlar (her zaman görünür)</label>
+      <textarea id="pin-notes" placeholder="Ör. Şeker yok, günlük 2L su, omuz koruma"></textarea>
+      <div class="muted" style="margin:6px 0 4px">Her satır ayrı bir madde olarak gösterilir.</div>
+      <div id="pin-notes-preview" class="list" style="padding:8px 0"></div>
+      <div class="actions">
+        <button class="primary" id="save-notes">Notları Kaydet</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -209,10 +318,11 @@
     // Supabase kütüphanesi yüklenince client'i oluştur ve günü yükle
     document.addEventListener('DOMContentLoaded', () => {
       initSupabaseClient();
-      setTimeout(loadDay, 150);
+      setTimeout(() => { loadDay(); if (typeof loadNotes === 'function') loadNotes(); if (typeof loadFixedPlans === 'function') loadFixedPlans(); renderNotesPreview(); }, 150);
     });
 
     $('#time').addEventListener('change', setAutoTypePill);
+    document.addEventListener('input', (e) => { if (e.target && e.target.id === 'pin-notes') renderNotesPreview(); });
 
     // ------------------------
     // SUPABASE Ops (tables must exist)
@@ -244,6 +354,105 @@
       await supabaseClient.from('workouts').delete().eq('client_id', cid).eq('date', date);
     }
 
+    async function supaUpdate(table, id, fields){
+      if (!supabaseClient) initSupabaseClient();
+      if (!supabaseClient) return { error: new Error('Supabase yok') };
+      return await supabaseClient.from(table).update(fields).eq('id', id);
+    }
+
+    async function supaDelete(table, id){
+      if (!supabaseClient) initSupabaseClient();
+      if (!supabaseClient) return { error: new Error('Supabase yok') };
+      return await supabaseClient.from(table).delete().eq('id', id);
+    }
+
+    // Sabit Planlar: yükleme ve render
+    async function loadFixedPlans(){
+      if (!supabaseClient) initSupabaseClient();
+      const cid = getClientId();
+      const [pm, pw] = await Promise.all([
+        supabaseClient.from('fixed_meal_plan').select('*').eq('client_id', cid).order('order_no', { ascending:true }).order('id', { ascending:true }),
+        supabaseClient.from('fixed_workout_plan').select('*').eq('client_id', cid).order('order_no', { ascending:true }).order('id', { ascending:true }),
+      ]);
+      renderFixedMeals(pm.data || []);
+      renderFixedWorkouts(pw.data || []);
+    }
+
+    function renderFixedMeals(items){
+      const areas = {
+        sabah: document.getElementById('plan-meals-sabah'),
+        oglen: document.getElementById('plan-meals-oglen'),
+        aksam: document.getElementById('plan-meals-aksam')
+      };
+      Object.values(areas).forEach(el => { if (el) el.innerHTML = ''; });
+      if (!items.length){
+        Object.values(areas).forEach(el => { if (el) el.innerHTML = '<div class="empty">Kayıt yok</div>'; });
+        return;
+      }
+      items.forEach(it => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `<div><div style="font-weight:600">${it.name} <small>(${it.amount})</small></div></div>
+                        <div class="item-actions">
+                          <button class="btn-sm btn-ghost btn-edit" data-kind="plan-meal" data-id="${it.id}">Düzenle</button>
+                          <button class="btn-sm btn-ghost btn-del" data-kind="plan-meal" data-id="${it.id}">Sil</button>
+                        </div>`;
+        const target = areas[it.meal_type] || areas.sabah;
+        if (target) target.appendChild(el);
+      });
+    }
+
+    function renderFixedWorkouts(items){
+      const wrap = document.getElementById('plan-workouts-list');
+      if (!wrap) return;
+      wrap.innerHTML = '';
+      if (!items.length){ wrap.innerHTML = '<div class="empty">Kayıt yok</div>'; return; }
+      items.forEach(it => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `<div>
+                          <div style="font-weight:600">#${it.order_no || ''} ${it.name}</div>
+                          <small>Set: ${it.sets || ''} • Tekrar: ${it.reps || ''} • Tempo: ${it.tempo || ''} • Reverse: ${it.reverse_reps || ''}</small>
+                          <div class="muted">${it.note || ''}</div>
+                        </div>
+                        <div class="item-actions">
+                          <button class="btn-sm btn-ghost btn-edit" data-kind="plan-workout" data-id="${it.id}">Düzenle</button>
+                          <button class="btn-sm btn-ghost btn-del" data-kind="plan-workout" data-id="${it.id}">Sil</button>
+                        </div>`;
+        wrap.appendChild(el);
+      });
+    }
+
+    // Sabit Notlar (user_notes)
+    async function loadNotes(){
+      if (!supabaseClient) initSupabaseClient();
+      const cid = getClientId();
+      const { data } = await supabaseClient.from('user_notes').select('*').eq('client_id', cid).maybeSingle();
+      if (data && $('#pin-notes')) { $('#pin-notes').value = data.content || ''; renderNotesPreview(); }
+    }
+
+    async function saveNotes(){
+      if (!supabaseClient) initSupabaseClient();
+      const cid = getClientId();
+      const content = ($('#pin-notes') && $('#pin-notes').value) ? $('#pin-notes').value : '';
+      await supabaseClient.from('user_notes').upsert({ client_id: cid, content }, { onConflict: 'client_id' });
+    }
+
+    function renderNotesPreview(){
+      const preview = document.getElementById('pin-notes-preview');
+      if (!preview) return;
+      const content = ($('#pin-notes') && $('#pin-notes').value) ? $('#pin-notes').value : '';
+      const lines = content.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      if (!lines.length){ preview.innerHTML = '<div class="empty">Madde bulunmuyor</div>'; return; }
+      preview.innerHTML = '';
+      lines.forEach(line => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `<div>• ${line}</div>`;
+        preview.appendChild(el);
+      });
+    }
+
     // ------------------------
     // Render Helpers
     // ------------------------
@@ -256,9 +465,13 @@
         const label = { sabah:'SABAH', oglen:'ÖĞLE', aksam:'AKŞAM', diger:'DİĞER' }[m.meal_type] || 'DİĞER';
         const el = document.createElement('div');
         el.className = 'item';
-        el.innerHTML = `<div><div style="font-weight:600">${m.name} <small>(${m.amount})</small></div>
+        el.innerHTML = `<div><div style=\"font-weight:600\">${m.name} <small>(${m.amount})</small></div>
                          <small>${m.time}</small></div>
-                         <div><span class="pill ${badge}">${label}</span></div>`;
+                         <div class=\"item-actions\">
+                           <span class=\"pill ${badge}\" style=\"margin-right:6px\">${label}</span>
+                           <button class=\"btn-sm btn-ghost btn-edit\" data-kind=\"meal\" data-id=\"${m.id}\">Düzenle</button>
+                           <button class=\"btn-sm btn-ghost btn-del\" data-kind=\"meal\" data-id=\"${m.id}\">Sil</button>
+                         </div>`;
         wrap.appendChild(el);
       });
     }
@@ -270,9 +483,13 @@
       extras.forEach(x => {
         const el = document.createElement('div');
         el.className = 'item';
-        el.innerHTML = `<div><div style="font-weight:600">${x.name} <small>(${x.amount})</small></div>
+        el.innerHTML = `<div><div style=\"font-weight:600\">${x.name} <small>(${x.amount})</small></div>
                          <small>${x.time}</small></div>
-                         <div><span class="pill ekstra">EKSTRA</span></div>`;
+                         <div class=\"item-actions\">
+                           <span class=\"pill ekstra\" style=\"margin-right:6px\">EKSTRA</span>
+                           <button class=\"btn-sm btn-ghost btn-edit\" data-kind=\"extra\" data-id=\"${x.id}\">Düzenle</button>
+                           <button class=\"btn-sm btn-ghost btn-del\" data-kind=\"extra\" data-id=\"${x.id}\">Sil</button>
+                         </div>`;
         wrap.appendChild(el);
       });
     }
@@ -284,8 +501,12 @@
       workouts.forEach(w => {
         const el = document.createElement('div');
         el.className = 'item';
-        el.innerHTML = `<div><div style="font-weight:600">${w.name} <small>(${w.reps})</small></div>
-                         <small>${w.time}</small><div class="muted">${w.notes || ''}</div></div>`;
+        el.innerHTML = `<div><div style=\"font-weight:600\">${w.name} <small>(${w.reps})</small></div>
+                         <small>${w.time}</small><div class=\"muted\">${w.notes || ''}</div></div>
+                         <div class=\"item-actions\">
+                           <button class=\"btn-sm btn-ghost btn-edit\" data-kind=\"workout\" data-id=\"${w.id}\">Düzenle</button>
+                           <button class=\"btn-sm btn-ghost btn-del\" data-kind=\"workout\" data-id=\"${w.id}\">Sil</button>
+                         </div>`;
         wrap.appendChild(el);
       });
     }
@@ -307,7 +528,7 @@
     }
 
     // Yedek: window load'ta da dene
-    window.addEventListener('load', () => { initSupabaseClient(); setTimeout(loadDay, 150); });
+    window.addEventListener('load', () => { initSupabaseClient(); setTimeout(() => { loadDay(); if (typeof loadNotes === 'function') loadNotes(); if (typeof loadFixedPlans === 'function') loadFixedPlans(); }, 150); });
     $('#date').addEventListener('change', () => { loadDay(); });
 
     // ------------------------
@@ -358,6 +579,114 @@
       await loadDay();
     });
 
+    // Sabit plan ekleme
+    document.getElementById('add-plan-meal')?.addEventListener('click', async () => {
+      if (!supabaseClient) initSupabaseClient();
+      const cid = getClientId();
+      const name = (document.getElementById('plan-meal-name')?.value || '').trim();
+      const amount = (document.getElementById('plan-meal-amount')?.value || '').trim();
+      const meal_type = (document.getElementById('plan-meal-type')?.value || 'sabah');
+      const order_no = Number(document.getElementById('plan-meal-order')?.value || '');
+      if (!name || !amount) return alert('Lütfen yemek ve miktar/detay giriniz.');
+      const row = { client_id: cid, name, amount, meal_type };
+      if (!Number.isNaN(order_no)) row.order_no = order_no;
+      const { error } = await supabaseClient.from('fixed_meal_plan').insert(row).select();
+      if (error) return alert('Plan kaydetme hatası: ' + error.message);
+      document.getElementById('plan-meal-name').value = '';
+      document.getElementById('plan-meal-amount').value = '';
+      const tSel = document.getElementById('plan-meal-type'); if (tSel) tSel.value = 'sabah';
+      const oInp = document.getElementById('plan-meal-order'); if (oInp) oInp.value = '';
+      await loadFixedPlans();
+    });
+
+    document.getElementById('add-plan-ex')?.addEventListener('click', async () => {
+      if (!supabaseClient) initSupabaseClient();
+      const cid = getClientId();
+      const order_no = Number(document.getElementById('plan-order')?.value || '');
+      const name = (document.getElementById('plan-ex-name')?.value || '').trim();
+      const sets = (document.getElementById('plan-sets')?.value || '').trim();
+      const reps = (document.getElementById('plan-reps')?.value || '').trim();
+      const tempo = (document.getElementById('plan-tempo')?.value || '').trim();
+      const reverse_reps = (document.getElementById('plan-reverse')?.value || '').trim();
+      const note = (document.getElementById('plan-note')?.value || '').trim();
+      if (!name) return alert('Lütfen egzersiz ismini giriniz.');
+      const row = { client_id: cid, name, sets, reps, tempo, reverse_reps, note };
+      if (!Number.isNaN(order_no)) row.order_no = order_no;
+      const { error } = await supabaseClient.from('fixed_workout_plan').insert(row).select();
+      if (error) return alert('Plan kaydetme hatası: ' + error.message);
+      ['plan-order','plan-ex-name','plan-sets','plan-reps','plan-tempo','plan-reverse','plan-note'].forEach(id=>{ const el=document.getElementById(id); if (el) el.value=''; });
+      await loadFixedPlans();
+    });
+
+    // Listelerde düzenle/sil (event delegation)
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const kind = btn.dataset.kind;
+      const id = btn.dataset.id;
+      if (btn.id === 'save-notes'){
+        try { await saveNotes(); alert('Notlar kaydedildi.'); } catch(err){ alert('Not kaydetme hatası'); }
+        return;
+      }
+      if (!kind || !id) return;
+
+      if (btn.classList.contains('btn-del')){
+        if (!confirm('Bu kaydı silmek istiyor musunuz?')) return;
+        const table =
+          kind === 'meal' ? 'meal_entries' :
+          kind === 'extra' ? 'extra_entries' :
+          kind === 'workout' ? 'workouts' :
+          kind === 'plan-meal' ? 'fixed_meal_plan' :
+          'fixed_workout_plan';
+        const { error } = await supaDelete(table, id);
+        if (error) { alert('Silme hatası: ' + error.message); return; }
+        if (kind.startsWith('plan-')) await loadFixedPlans(); else await loadDay();
+        return;
+      }
+
+      if (btn.classList.contains('btn-edit')){
+        if (kind === 'meal'){
+          const name = prompt('Yemek ismi:'); if (name === null) return;
+          const amount = prompt('Miktar:'); if (amount === null) return;
+          const { error } = await supaUpdate('meal_entries', id, { name, amount });
+          if (error) { alert('Düzenleme hatası: ' + error.message); return; }
+        } else if (kind === 'extra'){
+          const name = prompt('Ürün/İçecek:'); if (name === null) return;
+          const amount = prompt('Miktar:'); if (amount === null) return;
+          const { error } = await supaUpdate('extra_entries', id, { name, amount });
+          if (error) { alert('Düzenleme hatası: ' + error.message); return; }
+        } else if (kind === 'workout'){
+          const name = prompt('Hareket:'); if (name === null) return;
+          const reps = prompt('Süre/Tekrar:'); if (reps === null) return;
+          const notes = prompt('Not (boş bırakılabilir):'); if (notes === null) return;
+          const { error } = await supaUpdate('workouts', id, { name, reps, notes });
+          if (error) { alert('Düzenleme hatası: ' + error.message); return; }
+        } else if (kind === 'plan-meal'){
+          const name = prompt('Yemek/Öğe:'); if (name === null) return;
+          const amount = prompt('Miktar/Detay:'); if (amount === null) return;
+          const meal_type = prompt('Öğün (sabah/oglen/aksam):', 'sabah'); if (meal_type === null) return;
+          const order_no = prompt('Sıra (opsiyonel, sayı):');
+          const fields = { name, amount, meal_type };
+          if (order_no && !Number.isNaN(Number(order_no))) fields.order_no = Number(order_no);
+          const { error } = await supaUpdate('fixed_meal_plan', id, fields);
+          if (error) { alert('Düzenleme hatası: ' + error.message); return; }
+        } else if (kind === 'plan-workout'){
+          const order_no = prompt('Sıra No:'); if (order_no === null) return;
+          const name = prompt('Egzersiz İsmi:'); if (name === null) return;
+          const sets = prompt('Set:'); if (sets === null) return;
+          const reps = prompt('Tekrar:'); if (reps === null) return;
+          const tempo = prompt('Tempo Süresi:'); if (tempo === null) return;
+          const reverse_reps = prompt('Reps in Reverse:'); if (reverse_reps === null) return;
+          const note = prompt('Not:'); if (note === null) return;
+          const fields = { name, sets, reps, tempo, reverse_reps, note };
+          if (!Number.isNaN(Number(order_no))) fields.order_no = Number(order_no);
+          const { error } = await supaUpdate('fixed_workout_plan', id, fields);
+          if (error) { alert('Düzenleme hatası: ' + error.message); return; }
+        }
+        if (kind.startsWith('plan-')) await loadFixedPlans(); else await loadDay();
+      }
+    });
+
     // ------------------------
     // Clear Day
     // ------------------------
@@ -373,6 +702,7 @@
     // ------------------------
     $('#export-pdf').addEventListener('click', async () => {
       const date = $('#date').value || todayISO();
+      const notes = ($('#pin-notes') && $('#pin-notes').value) ? $('#pin-notes').value : '';
       const cid = getClientId();
       const [mealsRes, extrasRes, workoutsRes] = await Promise.all([
         supaSelect('meal_entries', { client_id: cid, date }),
@@ -400,6 +730,20 @@
       doc.text(trToAscii('Beslenme ve Spor Günlüğü'), left, y);
       doc.setTextColor(0);
       y += 24;
+
+      if (notes){
+        doc.setFont('helvetica','bold'); doc.setFontSize(12);
+        doc.text(trToAscii('Dikkat Edilecekler'), left, y);
+        y += 8;
+        doc.setFont('helvetica','normal'); doc.setFontSize(10);
+        const lines = notes.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+        lines.forEach(line => {
+          const wrapped = doc.splitTextToSize('• ' + trToAscii(line), 515);
+          doc.text(wrapped, left, y);
+          y += (wrapped.length * 12);
+        });
+        y += 8;
+      }
 
       // Meals grouped
       const mealMap = { sabah:[], oglen:[], aksam:[], diger:[] };
