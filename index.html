@@ -312,12 +312,7 @@
     const todayISO = () => new Date().toISOString().slice(0,10);
     const pad = (n) => String(n).padStart(2,'0');
     const nowTime = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}` };
-    const getClientId = () => {
-      const key = 'client_id';
-      let cid = localStorage.getItem(key);
-      if (!cid) { cid = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).slice(2)+Date.now()); localStorage.setItem(key, cid); }
-      return cid;
-    };
+    const getClientId = () => '5b84b2de-292b-4f93-a086-1e3e3b0fbfa7';
 
     function detectMealType(hhmm){
       // hhmm -> 'HH:MM'
@@ -835,7 +830,7 @@
       const trToAscii = (s) => (s||'')
         .replace(/ç/g,'c').replace(/ğ/g,'g').replace(/ı/g,'i').replace(/i̇/g,'i')
         .replace(/ö/g,'o').replace(/ş/g,'s').replace(/ü/g,'u')
-        .replace(/Ç/g,'C').replace(/Ğ/g,'G').replace(/İ/g,'I').replace(/İ/g,'I')
+        .replace(/Ç/g,'C').replace(/Ğ/g,'G').replace(/İ/g,'I').replace(/İ/g,'I')
         .replace(/Ö/g,'O').replace(/Ş/g,'S').replace(/Ü/g,'U');
       const left = 40;
       let y = 40;
